@@ -2,6 +2,8 @@
 from pyspark import pipelines
 from pyspark.sql.functions import *
 from pyspark.sql.window import Window
+from pyspark.sql.types import DateType
+from datetime import timedelta
 
 # Get pipeline configs
 catalog_name = spark.conf.get("catalog_name")
@@ -10,21 +12,18 @@ schema_name = spark.conf.get("schema_name")
 source_path = f'/Volumes/{catalog_name}/{schema_name}/raw_batch_files/'
 
 # Bronze table
-# Read the CSV data from the source location using Auto Loader into a bronze-level table
-# The batches are read incrementally by the Auto Loader but in random order.
-@pipelines.table
+# Read the delta data from the source location into a bronze-level table
+@pipelines.table()
 def bronze_table():
     return (
-        spark.readStream.format("cloudFiles") \
-        .option("cloudFiles.format", "csv") \
-        .option("header", "true")
+        spark.readStream.format("delta")
         .load(source_path)
         .withColumn("date", col("date").cast("string"))
     )
 
 
 # Silver table
-@pipelines.table
+@pipelines.table()
 
 # Checking if the values are within the expected range
 @pipelines.expect("valid_temperature", "meantemp BETWEEN -80 AND 60")
@@ -33,11 +32,11 @@ def bronze_table():
 @pipelines.expect("valid_pressure", "meanpressure BETWEEN 900 AND 1100")
 
 # Checking for null values in any of the columns and dropping them
-@pipelines.expect_or_drop("no_nulls", "date IS NOT NULL AND \
-                        meantemp IS NOT NULL AND \
-                        humidity IS NOT NULL AND \
-                        wind_speed IS NOT NULL AND \
-                        meanpressure IS NOT NULL")
+@pipelines.expect("no_nulls", "date IS NOT NULL AND \
+                    meantemp IS NOT NULL AND \
+                    humidity IS NOT NULL AND \
+                    wind_speed IS NOT NULL AND \
+                    meanpressure IS NOT NULL")
 
 
 def silver_table():
@@ -51,6 +50,19 @@ def silver_table():
         .dropDuplicates(["date"]) \
         .select("date", "meantemp", "humidity", "wind_speed", "meanpressure")
     )
+
+# A table to check date continuity between the bronze and silver tables.
+@pipelines.materialized_view()
+def date_continuity_check():
+    bronze = spark.read.table("bronze_table").select("date").distinct()
+    bronze = bronze.withColumn("date", to_date(col("date"), "yyyy-MM-dd"))
+    min_max = bronze.agg(min("date").alias("min_date"), max("date").alias("max_date"))
+    date_seq = min_max.selectExpr(
+        "sequence(min_date, max_date, interval 1 day) as date_seq"
+    ).selectExpr("explode(date_seq) as date")
+    silver = spark.read.table("silver_table").select("date").distinct()
+    missing = date_seq.join(silver, on="date", how="left_anti")
+    return missing
 
 
 # Gold table
