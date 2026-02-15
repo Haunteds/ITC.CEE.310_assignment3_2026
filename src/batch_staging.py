@@ -4,7 +4,7 @@ import shutil
 
 source_dir = "/Volumes/mlops_course/ingesting_data/stage_batch_files/"
 target_dir = "/Volumes/mlops_course/ingesting_data/raw_batch_files/"
-interval_seconds = 10
+interval_seconds = 5
 
 batches = sorted([d for d in os.listdir(source_dir) if d.startswith("batch")])
 
