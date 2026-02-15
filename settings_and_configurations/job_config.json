@@ -1,0 +1,69 @@
+{
+  "name": "batch_ingesting",
+  "email_notifications": {
+    "no_alert_for_skipped_runs": false
+  },
+  "webhook_notifications": {},
+  "timeout_seconds": 0,
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "batch_reset",
+      "run_if": "ALL_SUCCESS",
+      "spark_python_task": {
+        "python_file": "/Workspace/Users/your.email@domain.com/ITC.CEE.310_assignment3_2026/src/reset_batches.py"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {},
+      "environment_key": "Default"
+    },
+    {
+      "task_key": "batch_division",
+      "depends_on": [
+        {
+          "task_key": "batch_reset"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "spark_python_task": {
+        "python_file": "/Workspace/Users/your.email@domain.com/ITC.CEE.310_assignment3_2026/src/batch_staging.py"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {},
+      "environment_key": "Default"
+    },
+    {
+      "task_key": "medal_pipeline",
+      "depends_on": [
+        {
+          "task_key": "batch_reset"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "pipeline_task": {
+        "pipeline_id": "75180dba-1600-45da-81c0-a47032d8e52f",
+        "full_refresh": true
+      },
+      "max_retries": 1,
+      "min_retry_interval_millis": 10000,
+      "retry_on_timeout": false,
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    }
+  ],
+  "queue": {
+    "enabled": true
+  },
+  "environments": [
+    {
+      "environment_key": "Default",
+      "spec": {
+        "environment_version": "4"
+      }
+    }
+  ],
+  "performance_target": "PERFORMANCE_OPTIMIZED"
+}

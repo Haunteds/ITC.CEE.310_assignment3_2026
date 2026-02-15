@@ -1,0 +1,24 @@
+{
+  "id": "75180dba-1600-45da-81c0-a47032d8e52f",
+  "pipeline_type": "WORKSPACE",
+  "name": "mlops_dataops_pipeline",
+  "configuration": {
+    "catalog_name": "mlops_course",
+    "schema_name": "ingesting_data"
+  },
+  "libraries": [
+    {
+      "glob": {
+        "include": "/Workspace/Users/your.email@domain.com/ITC.CEE.310_assignment3_2026/pipeline/src/pipeline.py"
+      }
+    }
+  ],
+  "schema": "ingesting_data",
+  "continuous": false,
+  "development": false,
+  "photon": true,
+  "channel": "CURRENT",
+  "catalog": "mlops_course",
+  "serverless": true,
+  "root_path": "/Workspace/Users/your.email@domain.com/ITC.CEE.310_assignment3_2026/pipeline"
+}
